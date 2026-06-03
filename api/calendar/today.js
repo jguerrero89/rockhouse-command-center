@@ -192,7 +192,7 @@ module.exports = async function handler(req, res) {
       const liveEvents = await fetchIcalEvents();
       sendJson(res, {
         status: "connected",
-        events: liveEvents.length ? liveEvents : events,
+        events: liveEvents,
       });
     } catch (error) {
       sendJson(res, {
@@ -216,7 +216,7 @@ module.exports = async function handler(req, res) {
     const liveEvents = await fetchGoogleEvents();
     sendJson(res, {
       status: "connected",
-      events: liveEvents.length ? liveEvents : events,
+      events: liveEvents,
     });
   } catch (error) {
     sendJson(res, {

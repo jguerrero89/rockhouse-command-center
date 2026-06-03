@@ -479,7 +479,7 @@ function renderAgenda() {
     <section class="side-block">
       <h2>Live Calendar</h2>
       <div class="agenda-list">
-        ${state.events.map((event) => {
+        ${state.events.length ? state.events.map((event) => {
           const itemRole = role(event.role);
           return `
             <div class="agenda-item" style="--role:${itemRole.color}">
@@ -490,7 +490,7 @@ function renderAgenda() {
               </div>
             </div>
           `;
-        }).join("")}
+        }).join("") : `<p class="empty-note">No calendar blocks found for today.</p>`}
       </div>
     </section>
   `;

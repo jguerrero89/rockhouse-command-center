@@ -697,6 +697,13 @@ pre {
   text-align: center;
 }
 
+.empty-note {
+  margin: 0;
+  color: #59606c;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 @media (max-width: 920px) {
   .topbar {
     height: auto;
