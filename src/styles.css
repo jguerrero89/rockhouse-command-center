@@ -2,6 +2,13 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#app {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 :root {
   color-scheme: dark;
   font-family: "DM Mono", "Courier New", monospace;
@@ -290,6 +297,7 @@ select:focus {
 
 .main-panel {
   min-width: 0;
+  max-width: 100%;
   padding: 24px;
   overflow: auto;
 }
@@ -326,6 +334,7 @@ select:focus {
   font-size: 22px;
   line-height: 1.38;
   font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .minutes {
@@ -675,7 +684,12 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .main-panel {
+    order: 1;
+  }
+
   .sidebar {
+    order: 2;
     min-height: auto;
     border-right: 0;
   }
@@ -710,6 +724,7 @@ pre {
 
   .main-panel {
     padding: 16px;
+    overflow-x: hidden;
   }
 
   .next-card,
@@ -721,6 +736,20 @@ pre {
   .task-row i {
     width: 100%;
     height: 3px;
+  }
+
+  .task-row strong {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
+
+  .task-row span,
+  .next-copy small,
+  .connector p,
+  pre {
+    overflow-wrap: anywhere;
   }
 
   .board,

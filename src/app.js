@@ -661,10 +661,11 @@ POST ${API_BASE}/api/automations/:id/run</code></pre>
 }
 
 function renderConnector(name, status, body) {
+  const label = status === "demo" ? "DEMO - NOT CONNECTED" : String(status).toUpperCase();
   return `
     <article class="connector">
       <strong>${name}</strong>
-      <span>${String(status).toUpperCase()}</span>
+      <span>${label}</span>
       <p>${body}</p>
     </article>
   `;
