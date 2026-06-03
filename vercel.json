@@ -2,6 +2,8 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/api/calendar/today", "destination": "/api/calendar/today.js" },
+    { "source": "/api/google/auth", "destination": "/api/google/auth.js" },
+    { "source": "/api/google/callback", "destination": "/api/google/callback.js" },
     { "source": "/api/notion/tasks", "destination": "/api/notion/tasks.js" },
     { "source": "/api/automations/:id/run", "destination": "/api/automations/run.js" }
   ]

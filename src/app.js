@@ -32,6 +32,8 @@ const DEFAULT_STATE = {
     alarms: true,
     automations: "draft",
   },
+  syncStatus: "idle",
+  syncError: "",
   tasks: [
     { id: 1, role: "money", source: "Calendar", text: "Prep for Listing: Walk-through at 2407 Mason Ct", priority: "urgent", done: false, minutes: 20, due: "11:40", action: "Draft walk-through prep checklist" },
     { id: 2, role: "money", source: "Calendar", text: "Travel buffer before listing walk-through", priority: "high", done: false, minutes: 10, due: "11:00", action: "Review route and materials" },
@@ -82,15 +84,26 @@ function setState(patch) {
 async function syncExternalData() {
   if (!API_BASE) return;
 
+  state = { ...state, syncStatus: "syncing", syncError: "" };
+  saveState();
+
   const next = {
     events: state.events,
     tasks: state.tasks,
     connected: { ...state.connected },
+    syncStatus: "synced",
+    syncError: "",
   };
 
   const [calendarResult, notionResult] = await Promise.allSettled([
-    fetch(`${API_BASE}/api/calendar/today`).then((res) => res.json()),
-    fetch(`${API_BASE}/api/notion/tasks`).then((res) => res.json()),
+    fetch(`${API_BASE}/api/calendar/today`, { credentials: "same-origin" }).then((res) => {
+      if (!res.ok) throw new Error(`Calendar API returned ${res.status}`);
+      return res.json();
+    }),
+    fetch(`${API_BASE}/api/notion/tasks`).then((res) => {
+      if (!res.ok) throw new Error(`Notion API returned ${res.status}`);
+      return res.json();
+    }),
   ]);
 
   if (calendarResult.status === "fulfilled") {
@@ -98,6 +111,8 @@ async function syncExternalData() {
     next.connected.calendar = calendarResult.value.status || "connected";
   } else {
     next.connected.calendar = "demo";
+    next.syncStatus = "error";
+    next.syncError = calendarResult.reason?.message || "Calendar API did not respond.";
   }
 
   if (notionResult.status === "fulfilled") {
@@ -105,6 +120,8 @@ async function syncExternalData() {
     next.connected.notion = notionResult.value.status || "connected";
   } else {
     next.connected.notion = "demo";
+    next.syncStatus = "error";
+    next.syncError = [next.syncError, notionResult.reason?.message || "Notion API did not respond."].filter(Boolean).join(" ");
   }
 
   setState(next);
@@ -358,6 +375,7 @@ function resetDemo() {
   state = structuredClone(DEFAULT_STATE);
   render();
   syncTimer();
+  syncExternalData();
 }
 
 function renderTimerOnly() {
@@ -628,6 +646,7 @@ function renderConnectView() {
     <div class="connect-view">
       <section class="connect-panel">
         <h1>Connectors</h1>
+        <p class="sync-line">Sync: ${escapeHtml(state.syncStatus)}${state.syncError ? ` · ${escapeHtml(state.syncError)}` : ""}</p>
         <div class="connector-grid">
           ${renderConnector("Google Calendar", state.connected.calendar, "Reads meetings and deadline blocks into the live agenda.")}
           ${renderConnector("Notion", state.connected.notion, "Reads task databases and writes completion notes back.")}
@@ -636,6 +655,8 @@ function renderConnectView() {
           ${renderConnector("Automations", state.connected.automations, "Drafts actions now; API execution belongs behind authenticated endpoints.")}
         </div>
         <div class="connector-actions">
+          <a class="button-link" href="${API_BASE}/api/google/auth">Connect Google Calendar</a>
+          <button data-action="sync-now">Sync Now</button>
           <button class="primary" data-action="enable-notifications">Enable Live Alerts</button>
           <button data-action="test-alert">Test Alarm</button>
         </div>
@@ -697,6 +718,7 @@ app.addEventListener("click", (event) => {
   if (action === "toggle-timer") setState({ timerRunning: !state.timerRunning });
   if (action === "stop") setState({ focusId: null, timerRunning: false, alarmActive: false, timerSec: 0, timerTotal: 0 });
   if (action === "enable-notifications") enableNotifications();
+  if (action === "sync-now") syncExternalData();
   if (action === "test-alert") triggerLiveAlert(`test:${Date.now()}`, "Live alert test", "This is what your command center alarm feels like.");
   if (action === "reset") resetDemo();
 });

@@ -23,12 +23,14 @@ body {
 }
 
 button,
+.button-link,
 input,
 select {
   font: inherit;
 }
 
-button {
+button,
+.button-link {
   min-height: 32px;
   border: 1px solid #333842;
   border-radius: 4px;
@@ -39,9 +41,14 @@ button {
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 0.08em;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-button:hover {
+button:hover,
+.button-link:hover {
   border-color: #6d7480;
   color: #fff;
 }
@@ -542,6 +549,13 @@ select:focus {
   margin: 0 0 14px;
   font-size: 15px;
   font-weight: 500;
+}
+
+.sync-line {
+  margin: -4px 0 14px;
+  color: #7b8390;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .connector-grid {

@@ -2,6 +2,24 @@ const { events, sendJson, isConfigured } = require("../_shared/data");
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3/calendars";
+const REFRESH_COOKIE = "rockhouse_google_refresh";
+
+function readCookies(req) {
+  return Object.fromEntries(
+    String(req.headers.cookie || "")
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const index = part.indexOf("=");
+        return [part.slice(0, index), decodeURIComponent(part.slice(index + 1))];
+      })
+  );
+}
+
+function getRefreshToken(req) {
+  return process.env.GOOGLE_REFRESH_TOKEN || readCookies(req)[REFRESH_COOKIE] || "";
+}
 
 function localDayRange() {
   const now = new Date();
@@ -124,14 +142,14 @@ async function fetchIcalEvents() {
   return parseIcsFeed(await response.text());
 }
 
-async function getGoogleAccessToken() {
+async function getGoogleAccessToken(refreshToken) {
   const response = await fetch(GOOGLE_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: process.env.GOOGLE_CLIENT_ID,
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
   });
@@ -145,8 +163,8 @@ async function getGoogleAccessToken() {
   return data.access_token;
 }
 
-async function fetchGoogleEvents() {
-  const accessToken = await getGoogleAccessToken();
+async function fetchGoogleEvents(req) {
+  const accessToken = await getGoogleAccessToken(getRefreshToken(req));
   const calendarId = encodeURIComponent(process.env.GOOGLE_CALENDAR_ID || "primary");
   const { timeMin, timeMax } = localDayRange();
   const url = new URL(`${GOOGLE_CALENDAR_API}/${calendarId}/events`);
@@ -186,7 +204,7 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const googleReady = isConfigured("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN");
+  const googleReady = isConfigured("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET") && Boolean(getRefreshToken(req));
   if (process.env.GOOGLE_ICAL_URL) {
     try {
       const liveEvents = await fetchIcalEvents();
@@ -213,7 +231,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const liveEvents = await fetchGoogleEvents();
+    const liveEvents = await fetchGoogleEvents(req);
     sendJson(res, {
       status: "connected",
       events: liveEvents,
