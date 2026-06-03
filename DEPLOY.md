@@ -78,7 +78,9 @@ GOOGLE_REFRESH_TOKEN=
 GOOGLE_CALENDAR_ID=primary
 ```
 
-The current route [api/calendar/today.js](./api/calendar/today.js) is ready for this wiring. Right now it returns demo data until those values are added and the fetch logic is implemented.
+The route [api/calendar/today.js](./api/calendar/today.js) now uses those values to refresh a Google access token and fetch today’s events from Google Calendar.
+
+If the variables are missing, it returns demo data. If Google returns an error, the response status becomes `calendar-error`.
 
 ## 5. Add Notion
 
@@ -91,7 +93,33 @@ NOTION_TOKEN=
 NOTION_DATABASE_ID=
 ```
 
-The current route [api/notion/tasks.js](./api/notion/tasks.js) is ready for this wiring. Right now it returns demo data until the Notion fetch logic is implemented.
+The route [api/notion/tasks.js](./api/notion/tasks.js) now queries your Notion database and maps common property names into the app.
+
+Recommended Notion properties:
+
+```text
+Name or Task       title
+Pillar             select
+Priority           select
+Done               checkbox
+Minutes            number
+Due                date
+Action             rich text
+```
+
+Accepted aliases:
+
+```text
+Title / Action / Next Action
+Role / Area / Category
+Urgency / Status
+Complete / Completed
+Duration / Estimate
+Due Date / Date / Time
+Automation / Do For Me / Next Step
+```
+
+If the variables are missing, it returns demo data. If Notion returns an error, the response status becomes `notion-error`.
 
 ## 6. Install On Your Phone
 

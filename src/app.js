@@ -82,34 +82,32 @@ function setState(patch) {
 async function syncExternalData() {
   if (!API_BASE) return;
 
-  try {
-    const [calendarRes, notionRes] = await Promise.all([
-      fetch(`${API_BASE}/api/calendar/today`),
-      fetch(`${API_BASE}/api/notion/tasks`),
-    ]);
+  const next = {
+    events: state.events,
+    tasks: state.tasks,
+    connected: { ...state.connected },
+  };
 
-    if (!calendarRes.ok || !notionRes.ok) throw new Error("Connector API unavailable");
+  const [calendarResult, notionResult] = await Promise.allSettled([
+    fetch(`${API_BASE}/api/calendar/today`).then((res) => res.json()),
+    fetch(`${API_BASE}/api/notion/tasks`).then((res) => res.json()),
+  ]);
 
-    const calendar = await calendarRes.json();
-    const notion = await notionRes.json();
-    setState({
-      events: calendar.events || state.events,
-      tasks: notion.tasks || state.tasks,
-      connected: {
-        ...state.connected,
-        calendar: calendar.status || "connected",
-        notion: notion.status || "connected",
-      },
-    });
-  } catch {
-    setState({
-      connected: {
-        ...state.connected,
-        calendar: "demo",
-        notion: "demo",
-      },
-    });
+  if (calendarResult.status === "fulfilled") {
+    next.events = calendarResult.value.events || next.events;
+    next.connected.calendar = calendarResult.value.status || "connected";
+  } else {
+    next.connected.calendar = "demo";
   }
+
+  if (notionResult.status === "fulfilled") {
+    next.tasks = notionResult.value.tasks || next.tasks;
+    next.connected.notion = notionResult.value.status || "connected";
+  } else {
+    next.connected.notion = "demo";
+  }
+
+  setState(next);
 }
 
 function role(id) {

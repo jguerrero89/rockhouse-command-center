@@ -40,8 +40,8 @@ Calendar and Notion integration hooks
 Still to wire:
 
 ```text
-Google Calendar OAuth
-Notion database fetch
+Google refresh token setup in Vercel env vars
+Notion token/database setup in Vercel env vars
 Supabase persistence
 Push notifications when app is closed
 ```
