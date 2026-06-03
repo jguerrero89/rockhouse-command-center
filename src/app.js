@@ -348,7 +348,7 @@ function runAutomation(taskId) {
     id: Date.now(),
     time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
     task: task.text,
-    result: `${task.action}: queued as a draft. Connect Notion/Calendar APIs to execute externally.`,
+    result: `${task.action}: drafted. Connect Notion/Calendar APIs to execute externally.`,
   };
   setState({ automations: [automation, ...state.automations].slice(0, 6) });
 }
@@ -441,7 +441,7 @@ function renderRoleFilters() {
           <span></span>${item.label}
         </button>
       `).join("")}
-      <p class="pillar-note">${selectedPillar ? selectedPillar.description : "All six pillars are active. The queue ranks the next move by urgency, due time, and focus cost."}</p>
+      <p class="pillar-note">${selectedPillar ? selectedPillar.description : "Pillars filter the dashboard when you want to focus one area. Leave All Pillars on for the normal day plan."}</p>
     </section>
   `;
 }
@@ -520,12 +520,15 @@ function renderFocusView(next, tasks) {
     <div class="focus-view">
       ${next ? renderNextTask(next) : `<div class="empty-state">No active tasks. Add one below.</div>`}
       <div class="section-title">
-        <span>Queue - ${tasks.length} remaining</span>
+        <span>Up Next - ${Math.max(0, tasks.length - 1)} more</span>
       </div>
-      ${renderAddForm()}
-      <div class="queue">
-        ${tasks.slice(1).map(renderQueueTask).join("")}
+      <div class="feed-list">
+        ${tasks.slice(1).map(renderFeedTask).join("")}
       </div>
+      <details class="add-task-panel">
+        <summary>Add a task</summary>
+        ${renderAddForm()}
+      </details>
     </div>
   `;
 }
@@ -568,18 +571,20 @@ function renderAddForm() {
   `;
 }
 
-function renderQueueTask(task) {
+function renderFeedTask(task) {
   const itemRole = role(task.role);
   return `
-    <article class="task-row" style="--role:${itemRole.color}">
+    <article class="feed-card" style="--role:${itemRole.color}; --role-bg:${itemRole.bg}">
       <i></i>
-      <div>
-        <strong>${escapeHtml(task.text)}</strong>
+      <div class="feed-card-copy">
         <span>${itemRole.label} · ${task.minutes}m · ${task.source} · due ${task.due}</span>
+        <strong>${escapeHtml(task.text)}</strong>
+        <em style="color:${PRIORITY_COLORS[task.priority]}">${PRIORITY_LABELS[task.priority]}</em>
       </div>
-      <em style="color:${PRIORITY_COLORS[task.priority]}">${PRIORITY_LABELS[task.priority]}</em>
-      <button data-action="start" data-id="${task.id}">Start</button>
-      <button data-action="complete" data-id="${task.id}">Done</button>
+      <div class="feed-card-actions">
+        <button data-action="start" data-id="${task.id}">Start</button>
+        <button data-action="complete" data-id="${task.id}">Done</button>
+      </div>
     </article>
   `;
 }
