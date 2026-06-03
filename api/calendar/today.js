@@ -31,6 +31,79 @@ function timeOnly(value) {
   });
 }
 
+function decodeIcsText(value = "") {
+  return value
+    .replace(/\\n/g, "\n")
+    .replace(/\\,/g, ",")
+    .replace(/\\;/g, ";")
+    .replace(/\\\\/g, "\\")
+    .trim();
+}
+
+function unfoldIcs(text) {
+  return text.replace(/\r?\n[ \t]/g, "");
+}
+
+function parseIcsDate(value) {
+  if (!value) return null;
+  if (/^\d{8}$/.test(value)) {
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6)) - 1;
+    const day = Number(value.slice(6, 8));
+    return new Date(year, month, day);
+  }
+
+  const match = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  if (value.endsWith("Z")) return new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  return new Date(year, month - 1, day, hour, minute, second);
+}
+
+function localDateKey(date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function todayKey() {
+  return localDateKey(new Date());
+}
+
+function parseIcsFeed(text) {
+  const today = todayKey();
+  const blocks = unfoldIcs(text).match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
+  return blocks
+    .map((block, index) => {
+      const lines = block.split(/\r?\n/);
+      const data = {};
+      lines.forEach((line) => {
+        const splitAt = line.indexOf(":");
+        if (splitAt === -1) return;
+        const key = line.slice(0, splitAt).split(";")[0];
+        data[key] = line.slice(splitAt + 1);
+      });
+
+      const startDate = parseIcsDate(data.DTSTART);
+      const endDate = parseIcsDate(data.DTEND);
+      if (!startDate || !endDate || localDateKey(startDate) !== today) return null;
+      const title = decodeIcsText(data.SUMMARY || "Calendar block");
+      return {
+        id: decodeIcsText(data.UID || `ical-${index}`),
+        title,
+        role: roleFromSummary(title),
+        start: timeOnly(startDate.toISOString()),
+        end: timeOnly(endDate.toISOString()),
+        type: "calendar",
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.start.localeCompare(b.start));
+}
+
 function roleFromSummary(summary = "") {
   const text = summary.toLowerCase();
   if (text.includes("workout") || text.includes("training") || text.includes("rehab") || text.includes("run")) return "health";
@@ -39,6 +112,16 @@ function roleFromSummary(summary = "") {
   if (text.includes("content") || text.includes("music") || text.includes("mentor")) return "legacy";
   if (text.includes("home") || text.includes("yard") || text.includes("clean")) return "home";
   return "money";
+}
+
+async function fetchIcalEvents() {
+  const response = await fetch(process.env.GOOGLE_ICAL_URL);
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Google iCal fetch failed: ${body}`);
+  }
+
+  return parseIcsFeed(await response.text());
 }
 
 async function getGoogleAccessToken() {
@@ -104,6 +187,23 @@ module.exports = async function handler(req, res) {
   }
 
   const googleReady = isConfigured("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN");
+  if (process.env.GOOGLE_ICAL_URL) {
+    try {
+      const liveEvents = await fetchIcalEvents();
+      sendJson(res, {
+        status: "connected",
+        events: liveEvents.length ? liveEvents : events,
+      });
+    } catch (error) {
+      sendJson(res, {
+        status: "calendar-error",
+        error: error.message,
+        events,
+      }, 500);
+    }
+    return;
+  }
+
   if (!googleReady) {
     sendJson(res, {
       status: "demo",

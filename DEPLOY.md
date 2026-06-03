@@ -67,6 +67,18 @@ Security note: Supabase reported that Row Level Security is currently disabled o
 
 ## 4. Add Google Calendar
 
+Simple option:
+
+Add your Google Calendar secret iCal URL to Vercel:
+
+```text
+GOOGLE_ICAL_URL=
+```
+
+This gives the app read-only calendar access without a Google Cloud project.
+
+Advanced OAuth option:
+
 Create OAuth credentials in Google Cloud.
 
 Add these Vercel environment variables:
@@ -78,7 +90,7 @@ GOOGLE_REFRESH_TOKEN=
 GOOGLE_CALENDAR_ID=primary
 ```
 
-The route [api/calendar/today.js](./api/calendar/today.js) now uses those values to refresh a Google access token and fetch today’s events from Google Calendar.
+The route [api/calendar/today.js](./api/calendar/today.js) now prefers `GOOGLE_ICAL_URL`. If that is missing, it falls back to the OAuth variables.
 
 If the variables are missing, it returns demo data. If Google returns an error, the response status becomes `calendar-error`.
 
