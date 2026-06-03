@@ -1,0 +1,18 @@
+{
+  "name": "Rockhouse Command Center",
+  "short_name": "Rockhouse",
+  "description": "Live command center for pillars, calendar blocks, focus alarms, and next actions.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

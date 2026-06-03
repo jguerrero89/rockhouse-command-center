@@ -1,0 +1,10 @@
+{
+  "name": "rockhouse-command-center",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "check": "node --check src/app.js && node --check api/calendar/today.js && node --check api/notion/tasks.js && node --check api/automations/run.js && node --check api/_shared/data.js"
+  },
+  "dependencies": {}
+}
