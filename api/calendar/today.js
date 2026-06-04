@@ -205,6 +205,23 @@ module.exports = async function handler(req, res) {
   }
 
   const googleReady = isConfigured("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET") && Boolean(getRefreshToken(req));
+  if (googleReady) {
+    try {
+      const liveEvents = await fetchGoogleEvents(req);
+      sendJson(res, {
+        status: "connected",
+        events: liveEvents,
+      });
+    } catch (error) {
+      sendJson(res, {
+        status: "calendar-error",
+        error: error.message,
+        events,
+      }, 500);
+    }
+    return;
+  }
+
   if (process.env.GOOGLE_ICAL_URL) {
     try {
       const liveEvents = await fetchIcalEvents();
@@ -222,25 +239,8 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  if (!googleReady) {
-    sendJson(res, {
-      status: "demo",
-      events,
-    });
-    return;
-  }
-
-  try {
-    const liveEvents = await fetchGoogleEvents(req);
-    sendJson(res, {
-      status: "connected",
-      events: liveEvents,
-    });
-  } catch (error) {
-    sendJson(res, {
-      status: "calendar-error",
-      error: error.message,
-      events,
-    }, 500);
-  }
+  sendJson(res, {
+    status: "demo",
+    events,
+  });
 };
