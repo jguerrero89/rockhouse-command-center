@@ -1,4 +1,4 @@
-const CACHE_NAME = "rockhouse-command-center-v4";
+const CACHE_NAME = "rockhouse-command-center-v5";
 const ASSETS = [
   "./",
   "./index.html",

@@ -1,4 +1,4 @@
-const { events, sendJson, isConfigured } = require("../_shared/data");
+const { sendJson, isConfigured } = require("../_shared/data");
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3/calendars";
@@ -216,7 +216,7 @@ module.exports = async function handler(req, res) {
       sendJson(res, {
         status: "calendar-error",
         error: error.message,
-        events,
+        events: [],
       }, 500);
     }
     return;
@@ -233,7 +233,7 @@ module.exports = async function handler(req, res) {
       sendJson(res, {
         status: "calendar-error",
         error: error.message,
-        events,
+        events: [],
       }, 500);
     }
     return;
@@ -241,6 +241,6 @@ module.exports = async function handler(req, res) {
 
   sendJson(res, {
     status: "demo",
-    events,
+    events: [],
   });
 };

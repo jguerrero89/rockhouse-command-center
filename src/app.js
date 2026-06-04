@@ -10,7 +10,7 @@ const ROLES = [
 const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_LABELS = { urgent: "NOW", high: "TODAY", medium: "SOON", low: "LATER" };
 const PRIORITY_COLORS = { urgent: "#ff5555", high: "#c8a96e", medium: "#6eb5c8", low: "#6d7480" };
-const STORAGE_KEY = "rockhouse.command-center.v4";
+const STORAGE_KEY = "rockhouse.command-center.v5";
 const API_BASE = window.location.protocol === "file:" ? null : window.location.pathname.replace(/\/[^/]*$/, "") || "";
 
 const DEFAULT_STATE = {
@@ -35,8 +35,6 @@ const DEFAULT_STATE = {
   syncStatus: "idle",
   syncError: "",
   tasks: [
-    { id: 1, role: "money", source: "Calendar", text: "Prep for Listing: Walk-through at 2407 Mason Ct", priority: "urgent", done: false, minutes: 20, due: "11:40", action: "Draft walk-through prep checklist" },
-    { id: 2, role: "money", source: "Calendar", text: "Travel buffer before listing walk-through", priority: "high", done: false, minutes: 10, due: "11:00", action: "Review route and materials" },
     { id: 3, role: "money", source: "Notion", text: "Review today's lead generation and sales production targets", priority: "high", done: false, minutes: 20, due: "09:15", action: "Draft money pillar execution list" },
     { id: 4, role: "health", source: "Notion", text: "Block strength, knee/back/core rehab, and recovery window", priority: "medium", done: false, minutes: 30, due: "15:00", action: "Create health block plan" },
     { id: 5, role: "family", source: "Notion", text: "Choose one concrete connection move for Tanya and the kids", priority: "medium", done: false, minutes: 15, due: "17:30", action: "Draft family leadership move" },
@@ -44,11 +42,7 @@ const DEFAULT_STATE = {
     { id: 7, role: "legacy", source: "Notion", text: "Capture one lesson from today's listing walk-through", priority: "low", done: false, minutes: 20, due: "18:30", action: "Build legacy content outline" },
     { id: 8, role: "home", source: "Notion", text: "Pick the next small home update that creates peace and function", priority: "low", done: false, minutes: 15, due: "19:00", action: "Draft home environment next step" },
   ],
-  events: [
-    { id: "cal-1", title: "Travel", role: "money", start: "11:00", end: "12:00", type: "travel" },
-    { id: "cal-2", title: "Listing: Walk-through - 2407 Mason Ct", role: "money", start: "12:00", end: "13:00", type: "appointment" },
-    { id: "cal-3", title: "Travel", role: "money", start: "13:00", end: "14:00", type: "travel" },
-  ],
+  events: [],
   automations: [],
 };
 

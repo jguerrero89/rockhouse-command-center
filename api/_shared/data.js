@@ -1,12 +1,6 @@
-const events = [
-  { id: "cal-1", title: "Travel", role: "money", start: "11:00", end: "12:00", type: "travel" },
-  { id: "cal-2", title: "Listing: Walk-through - 2407 Mason Ct", role: "money", start: "12:00", end: "13:00", type: "appointment" },
-  { id: "cal-3", title: "Travel", role: "money", start: "13:00", end: "14:00", type: "travel" },
-];
+const events = [];
 
 const tasks = [
-  { id: 1, role: "money", source: "Calendar", text: "Prep for Listing: Walk-through at 2407 Mason Ct", priority: "urgent", done: false, minutes: 20, due: "11:40", action: "Draft walk-through prep checklist" },
-  { id: 2, role: "money", source: "Calendar", text: "Travel buffer before listing walk-through", priority: "high", done: false, minutes: 10, due: "11:00", action: "Review route and materials" },
   { id: 3, role: "money", source: "Notion", text: "Review today's lead generation and sales production targets", priority: "high", done: false, minutes: 20, due: "09:15", action: "Draft money pillar execution list" },
   { id: 4, role: "health", source: "Notion", text: "Block strength, knee/back/core rehab, and recovery window", priority: "medium", done: false, minutes: 30, due: "15:00", action: "Create health block plan" },
   { id: 5, role: "family", source: "Notion", text: "Choose one concrete connection move for Tanya and the kids", priority: "medium", done: false, minutes: 15, due: "17:30", action: "Draft family leadership move" },
