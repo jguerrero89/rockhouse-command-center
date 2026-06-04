@@ -91,5 +91,7 @@ module.exports = async function handler(req, res) {
     cookie(REFRESH_COOKIE, token.refresh_token, 60 * 60 * 24 * 365),
     cookie(STATE_COOKIE, "", 0),
   ]);
-  sendHtml(res, 200, "Google Calendar connected", "Your calendar token is saved for this Rockhouse app domain. Return to the dashboard and press Sync Now.");
+  res.statusCode = 302;
+  res.setHeader("Location", "/?google=connected");
+  res.end();
 };

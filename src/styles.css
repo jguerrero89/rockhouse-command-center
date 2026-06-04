@@ -558,6 +558,22 @@ select:focus {
   line-height: 1.45;
 }
 
+.diagnostic-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -4px 0 14px;
+}
+
+.diagnostic-line span {
+  border: 1px solid #29303a;
+  border-radius: 999px;
+  background: #111318;
+  color: #9aa2ad;
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
 .connector-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(160px, 1fr));

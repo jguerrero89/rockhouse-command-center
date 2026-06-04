@@ -240,7 +240,7 @@ module.exports = async function handler(req, res) {
   }
 
   sendJson(res, {
-    status: "demo",
+    status: "needs-google-auth",
     events: [],
   });
 };

@@ -6,6 +6,7 @@ const { URL } = require("node:url");
 const calendarToday = require("./api/calendar/today");
 const googleAuth = require("./api/google/auth");
 const googleCallback = require("./api/google/callback");
+const googleStatus = require("./api/google/status");
 const notionTasks = require("./api/notion/tasks");
 const automationRun = require("./api/automations/run");
 
@@ -58,6 +59,11 @@ async function handleApi(req, res) {
 
   if (url.pathname === "/api/google/callback") {
     await googleCallback(req, res);
+    return;
+  }
+
+  if (url.pathname === "/api/google/status") {
+    await googleStatus(req, res);
     return;
   }
 

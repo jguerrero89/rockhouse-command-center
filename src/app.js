@@ -10,7 +10,7 @@ const ROLES = [
 const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_LABELS = { urgent: "NOW", high: "TODAY", medium: "SOON", low: "LATER" };
 const PRIORITY_COLORS = { urgent: "#ff5555", high: "#c8a96e", medium: "#6eb5c8", low: "#6d7480" };
-const STORAGE_KEY = "rockhouse.command-center.v5";
+const STORAGE_KEY = "rockhouse.command-center.v7";
 const API_BASE = window.location.protocol === "file:" ? null : window.location.pathname.replace(/\/[^/]*$/, "") || "";
 
 const DEFAULT_STATE = {
@@ -27,13 +27,14 @@ const DEFAULT_STATE = {
   notificationsEnabled: false,
   alertedKeys: [],
   connected: {
-    calendar: "demo",
-    notion: "demo",
+    calendar: "not-connected",
+    notion: "not-connected",
     alarms: true,
     automations: "draft",
   },
   syncStatus: "idle",
   syncError: "",
+  googleStatus: null,
   tasks: [
     { id: 3, role: "money", source: "Notion", text: "Review today's lead generation and sales production targets", priority: "high", done: false, minutes: 20, due: "09:15", action: "Draft money pillar execution list" },
     { id: 4, role: "health", source: "Notion", text: "Block strength, knee/back/core rehab, and recovery window", priority: "medium", done: false, minutes: 30, due: "15:00", action: "Create health block plan" },
@@ -57,7 +58,12 @@ let syncStarted = false;
 
 function loadState() {
   try {
-    return { ...DEFAULT_STATE, ...JSON.parse(localStorage.getItem(STORAGE_KEY)) };
+    const loaded = { ...DEFAULT_STATE, ...JSON.parse(localStorage.getItem(STORAGE_KEY)) };
+    if (new URLSearchParams(window.location.search).get("google") === "connected") {
+      loaded.view = "connect";
+      loaded.syncStatus = "google-connected";
+    }
+    return loaded;
   } catch {
     return structuredClone(DEFAULT_STATE);
   }
@@ -80,6 +86,7 @@ async function syncExternalData() {
 
   state = { ...state, syncStatus: "syncing", syncError: "" };
   saveState();
+  render();
 
   const next = {
     events: state.events,
@@ -87,9 +94,10 @@ async function syncExternalData() {
     connected: { ...state.connected },
     syncStatus: "synced",
     syncError: "",
+    googleStatus: state.googleStatus,
   };
 
-  const [calendarResult, notionResult] = await Promise.allSettled([
+  const [calendarResult, notionResult, googleStatusResult] = await Promise.allSettled([
     fetch(`${API_BASE}/api/calendar/today`, { credentials: "same-origin" }).then((res) => {
       if (!res.ok) throw new Error(`Calendar API returned ${res.status}`);
       return res.json();
@@ -98,13 +106,17 @@ async function syncExternalData() {
       if (!res.ok) throw new Error(`Notion API returned ${res.status}`);
       return res.json();
     }),
+    fetch(`${API_BASE}/api/google/status`, { credentials: "same-origin" }).then((res) => {
+      if (!res.ok) throw new Error(`Google status returned ${res.status}`);
+      return res.json();
+    }),
   ]);
 
   if (calendarResult.status === "fulfilled") {
     next.events = calendarResult.value.events || next.events;
     next.connected.calendar = calendarResult.value.status || "connected";
   } else {
-    next.connected.calendar = "demo";
+    next.connected.calendar = "not-connected";
     next.syncStatus = "error";
     next.syncError = calendarResult.reason?.message || "Calendar API did not respond.";
   }
@@ -113,9 +125,13 @@ async function syncExternalData() {
     next.tasks = notionResult.value.tasks || next.tasks;
     next.connected.notion = notionResult.value.status || "connected";
   } else {
-    next.connected.notion = "demo";
+    next.connected.notion = "not-connected";
     next.syncStatus = "error";
     next.syncError = [next.syncError, notionResult.reason?.message || "Notion API did not respond."].filter(Boolean).join(" ");
+  }
+
+  if (googleStatusResult.status === "fulfilled") {
+    next.googleStatus = googleStatusResult.value;
   }
 
   setState(next);
@@ -364,7 +380,7 @@ function runAutomation(taskId) {
   setState({ automations: [automation, ...state.automations].slice(0, 6) });
 }
 
-function resetDemo() {
+function resetLocalData() {
   localStorage.removeItem(STORAGE_KEY);
   state = structuredClone(DEFAULT_STATE);
   render();
@@ -641,6 +657,7 @@ function renderConnectView() {
       <section class="connect-panel">
         <h1>Connectors</h1>
         <p class="sync-line">Sync: ${escapeHtml(state.syncStatus)}${state.syncError ? ` · ${escapeHtml(state.syncError)}` : ""}</p>
+        ${renderGoogleStatus()}
         <div class="connector-grid">
           ${renderConnector("Google Calendar", state.connected.calendar, "Reads meetings and deadline blocks into the live agenda.")}
           ${renderConnector("Notion", state.connected.notion, "Reads task databases and writes completion notes back.")}
@@ -672,14 +689,35 @@ function renderConnectView() {
         <pre><code>GET  ${API_BASE}/api/calendar/today
 GET  ${API_BASE}/api/notion/tasks
 POST ${API_BASE}/api/automations/:id/run</code></pre>
-        <button data-action="reset">Reset Demo Data</button>
+        <button data-action="reset">Reset Local Data</button>
       </section>
     </div>
   `;
 }
 
+function renderGoogleStatus() {
+  if (!state.googleStatus) return "";
+  const status = state.googleStatus;
+  return `
+    <div class="diagnostic-line">
+      <span>Google env: ${status.googleClientConfigured ? "ready" : "missing"}</span>
+      <span>Token cookie: ${status.hasRefreshCookie ? "present" : "missing"}</span>
+      <span>Calendar: ${escapeHtml(status.calendarId || "primary")}</span>
+      ${status.hasIcalFallback ? "<span>iCal fallback present</span>" : ""}
+    </div>
+  `;
+}
+
 function renderConnector(name, status, body) {
-  const label = status === "demo" ? "DEMO - NOT CONNECTED" : String(status).toUpperCase();
+  const labels = {
+    "not-connected": "NOT CONNECTED",
+    "needs-google-auth": "NEEDS GOOGLE APPROVAL",
+    connected: "CONNECTED",
+    on: "ON",
+    off: "OFF",
+    draft: "DRAFT",
+  };
+  const label = labels[status] || String(status).toUpperCase();
   return `
     <article class="connector">
       <strong>${name}</strong>
@@ -714,7 +752,7 @@ app.addEventListener("click", (event) => {
   if (action === "enable-notifications") enableNotifications();
   if (action === "sync-now") syncExternalData();
   if (action === "test-alert") triggerLiveAlert(`test:${Date.now()}`, "Live alert test", "This is what your command center alarm feels like.");
-  if (action === "reset") resetDemo();
+  if (action === "reset") resetLocalData();
 });
 
 app.addEventListener("submit", (event) => {

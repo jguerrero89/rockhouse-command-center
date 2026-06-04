@@ -1,4 +1,4 @@
-const { tasks, sendJson, isConfigured } = require("../_shared/data");
+const { sendJson, isConfigured } = require("../_shared/data");
 
 const NOTION_VERSION = "2022-06-28";
 
@@ -108,8 +108,8 @@ module.exports = async function handler(req, res) {
   const notionReady = isConfigured("NOTION_TOKEN", "NOTION_DATABASE_ID");
   if (!notionReady) {
     sendJson(res, {
-      status: "demo",
-      tasks,
+      status: "not-connected",
+      tasks: [],
     });
     return;
   }
@@ -118,13 +118,13 @@ module.exports = async function handler(req, res) {
     const liveTasks = await fetchNotionTasks();
     sendJson(res, {
       status: "connected",
-      tasks: liveTasks.length ? liveTasks : tasks,
+      tasks: liveTasks,
     });
   } catch (error) {
     sendJson(res, {
       status: "notion-error",
       error: error.message,
-      tasks,
+      tasks: [],
     }, 500);
   }
 };
