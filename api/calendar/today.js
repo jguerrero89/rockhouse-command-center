@@ -21,19 +21,12 @@ function getRefreshToken(req) {
   return process.env.GOOGLE_REFRESH_TOKEN || readCookies(req)[REFRESH_COOKIE] || "";
 }
 
-function localDayRange() {
+function upcomingRange() {
   const now = new Date();
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const parts = Object.fromEntries(formatter.formatToParts(now).map((part) => [part.type, part.value]));
-  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  const until = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
   return {
-    timeMin: `${date}T00:00:00-07:00`,
-    timeMax: `${date}T23:59:59-07:00`,
+    timeMin: now.toISOString(),
+    timeMax: until.toISOString(),
   };
 }
 
@@ -46,6 +39,23 @@ function timeOnly(value) {
     hour12: false,
     hour: "2-digit",
     minute: "2-digit",
+  });
+}
+
+function dateLabel(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const today = localDateKey(new Date());
+  const tomorrow = localDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
+  const key = localDateKey(date);
+  if (key === today) return "Today";
+  if (key === tomorrow) return "Tomorrow";
+  return date.toLocaleDateString("en-US", {
+    timeZone: "America/Los_Angeles",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
   });
 }
 
@@ -87,12 +97,9 @@ function localDateKey(date) {
   }).format(date);
 }
 
-function todayKey() {
-  return localDateKey(new Date());
-}
-
 function parseIcsFeed(text) {
-  const today = todayKey();
+  const now = Date.now();
+  const cutoff = now + 14 * 24 * 60 * 60 * 1000;
   const blocks = unfoldIcs(text).match(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g) || [];
   return blocks
     .map((block, index) => {
@@ -107,19 +114,22 @@ function parseIcsFeed(text) {
 
       const startDate = parseIcsDate(data.DTSTART);
       const endDate = parseIcsDate(data.DTEND);
-      if (!startDate || !endDate || localDateKey(startDate) !== today) return null;
+      if (!startDate || !endDate || startDate.getTime() < now || startDate.getTime() > cutoff) return null;
       const title = decodeIcsText(data.SUMMARY || "Calendar block");
       return {
         id: decodeIcsText(data.UID || `ical-${index}`),
         title,
         role: roleFromSummary(title),
+        date: dateLabel(startDate.toISOString()),
+        startsAt: startDate.toISOString(),
         start: timeOnly(startDate.toISOString()),
         end: timeOnly(endDate.toISOString()),
         type: "calendar",
       };
     })
     .filter(Boolean)
-    .sort((a, b) => a.start.localeCompare(b.start));
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+    .slice(0, 25);
 }
 
 function roleFromSummary(summary = "") {
@@ -166,7 +176,7 @@ async function getGoogleAccessToken(refreshToken) {
 async function fetchGoogleEvents(req) {
   const accessToken = await getGoogleAccessToken(getRefreshToken(req));
   const calendarId = encodeURIComponent(process.env.GOOGLE_CALENDAR_ID || "primary");
-  const { timeMin, timeMax } = localDayRange();
+  const { timeMin, timeMax } = upcomingRange();
   const url = new URL(`${GOOGLE_CALENDAR_API}/${calendarId}/events`);
   url.searchParams.set("singleEvents", "true");
   url.searchParams.set("orderBy", "startTime");
@@ -190,6 +200,8 @@ async function fetchGoogleEvents(req) {
       id: event.id,
       title: event.summary || "Calendar block",
       role: roleFromSummary(event.summary || ""),
+      date: dateLabel(event.start?.dateTime || event.start?.date),
+      startsAt: event.start?.dateTime || event.start?.date || "",
       start: timeOnly(event.start?.dateTime || event.start?.date),
       end: timeOnly(event.end?.dateTime || event.end?.date),
       type: event.eventType || "calendar",

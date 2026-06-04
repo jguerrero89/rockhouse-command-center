@@ -10,7 +10,7 @@ const ROLES = [
 const PRIORITY_ORDER = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_LABELS = { urgent: "NOW", high: "TODAY", medium: "SOON", low: "LATER" };
 const PRIORITY_COLORS = { urgent: "#ff5555", high: "#c8a96e", medium: "#6eb5c8", low: "#6d7480" };
-const STORAGE_KEY = "rockhouse.command-center.v7";
+const STORAGE_KEY = "rockhouse.command-center.v8";
 const API_BASE = window.location.protocol === "file:" ? null : window.location.pathname.replace(/\/[^/]*$/, "") || "";
 
 const DEFAULT_STATE = {
@@ -185,7 +185,9 @@ function checkLiveAlerts() {
   const alertWindows = [15, 5, 0];
 
   state.events.forEach((event) => {
-    const minutesUntil = toMinutes(event.start) - current;
+    const minutesUntil = event.startsAt
+      ? Math.round((new Date(event.startsAt).getTime() - Date.now()) / 60000)
+      : toMinutes(event.start) - current;
     if (!alertWindows.includes(minutesUntil)) return;
     triggerLiveAlert(
       `event:${event.id}:${minutesUntil}`,
@@ -505,20 +507,20 @@ function renderNoFocus() {
 function renderAgenda() {
   return `
     <section class="side-block">
-      <h2>Live Calendar</h2>
+      <h2>Calendar Up Next</h2>
       <div class="agenda-list">
         ${state.events.length ? state.events.map((event) => {
           const itemRole = role(event.role);
           return `
             <div class="agenda-item" style="--role:${itemRole.color}">
-              <time>${event.start}</time>
+              <time>${event.date || "Next"}<br>${event.start}</time>
               <div>
                 <strong>${escapeHtml(event.title)}</strong>
                 <span>${event.end} · ${itemRole.short}</span>
               </div>
             </div>
           `;
-        }).join("") : `<p class="empty-note">No calendar blocks found for today.</p>`}
+        }).join("") : `<p class="empty-note">No upcoming calendar blocks found.</p>`}
       </div>
     </section>
   `;
